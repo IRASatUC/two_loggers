@@ -14,7 +14,7 @@ from geometry_msgs.msg import Pose, Twist
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str, default='')
-    parser.add_argument('--num_episodes', type=int, default=20000)
+    parser.add_argument('--num_episodes', type=int, default=10000)
     parser.add_argument('--num_steps', type=int, default=200)
     parser.add_argument('--normalize', action='store_true', default=False)
     parser.add_argument('--time_bonus', type=float, default=0)
@@ -27,6 +27,9 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=2048)
     parser.add_argument('--mem_cap', type=int, default=1000000)
     parser.add_argument('--update_step', type=int, default=8192)
+    parser.add_argument('--decay_mode', type=str, default='lin')
+    parser.add_argument('--decay_period', type=float, help='for linear epsilon decay only', default=5000)
+    parser.add_argument('--decay_rate', type=float, help='for exponential epsilon decay only', default=0.9995)
     parser.add_argument('--init_eps', type=float, default=1.)
     parser.add_argument('--final_eps', type=float, default=0.05)
 
@@ -78,7 +81,7 @@ def obs_to_state(observation, mode):
     cos_yaw = np.cos(euler[2])
     sin_yaw = np.sin(euler[2])
     yaw_dot = observation["logger_0"]["twist"].angular.z
-    state_logger0 = np.array([x, y, v_x, v_y, cos_yaw, sin_yaw, yaw_dot])
+    state_0 = np.array([x, y, v_x, v_y, cos_yaw, sin_yaw, yaw_dot])
     # compute logger_1 state
     x = observation["logger_1"]["pose"].position.x
     y = observation["logger_1"]["pose"].position.y
@@ -94,14 +97,14 @@ def obs_to_state(observation, mode):
     cos_yaw = np.cos(euler[2])
     sin_yaw = np.sin(euler[2])
     yaw_dot = observation["logger_1"]["twist"].angular.z
-    state_logger1 = np.array([x, y, v_x, v_y, cos_yaw, sin_yaw, yaw_dot])
+    state_1 = np.array([x, y, v_x, v_y, cos_yaw, sin_yaw, yaw_dot])
 
     if mode == "logger_0":
-        return np.concatenate((state_log, state_logger0), axis=0)
+        return np.concatenate((state_log, state_0), axis=0)
     elif mode == "logger_1":
-        return np.concatenate((state_log, state_logger1), axis=0)
+        return np.concatenate((state_log, state_1), axis=0)
     elif mode == "all":
-        return np.concatenate((state_log, state_logger0, state_logger1), axis=0)
+        return np.concatenate((state_log, state_0, state_1), axis=0)
 
 def adjust_reward(train_params, env):
     done = env._episode_done
@@ -225,15 +228,14 @@ def create_train_params(complete_episodes, complete_steps, success_count, source
 
     return train_params
 
-def create_agent_params(dim_state, actions, ep_returns, ep_losses, mean, std, layer_sizes, discount_rate, learning_rate, batch_size, memory_cap, update_step, decay_period, init_eps, final_eps):
+def create_agent_params(name, dim_state, actions, mean, std, layer_sizes, discount_rate, learning_rate, batch_size, memory_cap, update_step, decay_mode, decay_period, decay_rate, init_eps, final_eps):
     """
     Create agent parameters dict based on args
     """
     agent_params = {}
+    agent_params['name'] = name
     agent_params["dim_state"] = dim_state
     agent_params["actions"] = actions
-    agent_params["ep_returns"] = ep_returns
-    agent_params["ep_losses"] = ep_losses
     agent_params["mean"] = mean
     agent_params["std"] = std
     agent_params["layer_sizes"] = layer_sizes
@@ -242,7 +244,9 @@ def create_agent_params(dim_state, actions, ep_returns, ep_losses, mean, std, la
     agent_params["batch_size"] = batch_size
     agent_params["memory_cap"] = memory_cap
     agent_params["update_step"] = update_step
+    agent_params["decay_mode"] = decay_mode
     agent_params["decay_period"] = decay_period
+    agent_params["decay_rate"] = decay_rate
     agent_params['init_eps'] = init_eps
     agent_params['final_eps'] = final_eps
 

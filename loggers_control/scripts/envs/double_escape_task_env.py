@@ -244,19 +244,21 @@ class DoubleEscapeEnv(object):
         link_states = self.link_states
         self.pausePhysics()
         # set robot orientation
-        robot0_name = "two_loggers::link_chassis_0"
-        robot1_name = "two_loggers::link_chassis_1"
         q0 = tf.transformations.quaternion_from_euler(0, 0, init_pose[3])
         q1 = tf.transformations.quaternion_from_euler(0, 0, init_pose[4])
         # set white robot orientation
+        robot0_name = 'two_loggers::link_chassis_0'
         robot0_state = LinkState()
         robot0_state.link_name = robot0_name
+        robot0_state.reference_frame = 'world'
         robot0_state.pose = link_states.pose[link_states.name.index(robot0_name)]
         robot0_state.pose.orientation.z = q0[2]
         robot0_state.pose.orientation.z = q0[3]
         # set black robot orientation
+        robot1_name = 'two_loggers::link_chassis_1'
         robot1_state = LinkState()
         robot1_state.link_name = robot1_name
+        robot1_state.reference_frame = 'world'
         robot1_state.pose = link_states.pose[link_states.name.index(robot1_name)]
         robot1_state.pose.orientation.z = q1[2]
         robot1_state.pose.orientation.z = q1[3]
@@ -299,10 +301,12 @@ class DoubleEscapeEnv(object):
         elif self.observation['logger_0']['pose'].position.y > 4.79:
             self.status[0] = 'north'
         elif -6<=self.observation['logger_0']['pose'].position.y < -4.79:
-            if np.absolute(self.observation['logger_0']['pose'].position.x) > 1:
+            # if np.absolute(self.observation['logger_0']['pose'].position.x) > 1:
+            if np.absolute(self.observation['logger_0']['pose'].position.x) > 0.5:
                 self.status[0] = 'south'
             else:
-                if np.absolute(self.observation['logger_0']['pose'].position.x) > 0.79:
+                # if np.absolute(self.observation['logger_0']['pose'].position.x) > 0.79:
+                if np.absolute(self.observation['logger_0']['pose'].position.x) > 0.295:
                     self.status[0] = 'door' # stuck at door
                 else:
                     self.status[0] = 'tunnel' # through door
@@ -320,10 +324,12 @@ class DoubleEscapeEnv(object):
         elif self.observation['logger_1']['pose'].position.y > 4.79:
             self.status[1] = 'north'
         elif -6<=self.observation['logger_1']['pose'].position.y < -4.79:
-            if np.absolute(self.observation['logger_1']['pose'].position.x) > 1:
+            # if np.absolute(self.observation['logger_1']['pose'].position.x) > 1:
+            if np.absolute(self.observation['logger_1']['pose'].position.x) > 0.5:
                 self.status[1] = 'south'
             else:
-                if np.absolute(self.observation['logger_1']['pose'].position.x) > 0.79:
+                # if np.absolute(self.observation['logger_1']['pose'].position.x) > 0.79:
+                if np.absolute(self.observation['logger_1']['pose'].position.x) > 0.295:
                     self.status[1] = 'door' # stuck at door
                 else:
                     self.status[1] = 'tunnel' # through door
